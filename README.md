@@ -47,7 +47,7 @@ Switch between the two from the landing page or via "Switch Role" in the header.
 
 ## Document format
 
-The parser recognises the format used by the sample doc (`Sec1_LinearEq.docx`). The structure matters more than exact wording — here's what it expects:
+The parser recognises the format used by the sample doc (`Sec1_LinearEq.docx`). The structure matters for parsing, the expected format is outlined below.
 
 ### Cover page (auto-skipped)
 Everything before the first `Question 1` (or `Q1` / `1.` / `1)`) is treated as the cover page. The parser extracts:
