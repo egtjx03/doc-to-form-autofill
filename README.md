@@ -1,6 +1,6 @@
 # EduVault - Auto Upload Questions Demo (Demo)
 
-A standalone, single-file demo of a question bank + form-fill portal for tuition centres. Built to replicate (and improve on) the manual data-entry workflow of uploading questions from Word documents into an online platform.
+A standalone, single-file demo of a question bank + form-fill portal for educational platforms. Built to replicate (and improve on) the manual data-entry workflow of uploading questions from Word documents into an online platform.
 
 This is a **demo build** — no backend, no database, no login system. Everything runs in the browser using vanilla HTML/CSS/JavaScript and the [mammoth.js](https://github.com/mwilliamson/mammoth.js) library (loaded from CDN) to parse `.docx` files client-side. No data ever leaves the browser, which sidesteps the privacy concerns that prompted this build in the first place.
 
