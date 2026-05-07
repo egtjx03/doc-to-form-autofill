@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduVault — Question Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Karla:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+  :root {
+    --bg:#0f0e17; --surface:#1a1928; --surface2:#232235; --border:#2e2c45;
+    --accent:#e8c547; --accent2:#7c6af0; --accent3:#4ecdc4;
+    --text:#fffffe; --text-muted:#9998bb;
+    --teacher:#f7a278; --student:#4ecdc4; --danger:#ff6b6b;
+    --radius:12px; --radius-sm:6px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Karla',sans-serif; font-size:15px; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:0.4; }
+
+  /* LANDING */
+  #landing { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px; position:relative; z-index:1; }
+  .glow-orb { position:fixed; border-radius:50%; filter:blur(120px); pointer-events:none; z-index:0; }
+  .glow-orb.a { width:400px; height:400px; background:rgba(124,106,240,0.15); top:-100px; right:-100px; }
+  .glow-orb.b { width:300px; height:300px; background:rgba(232,197,71,0.1); bottom:-80px; left:-80px; }
+  .brand { font-family:'Syne',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.25em; text-transform:uppercase; color:var(--accent); margin-bottom:48px; opacity:0; animation:fadeUp 0.6s 0.1s ease forwards; }
+  .landing-title { font-family:'Syne',sans-serif; font-size:clamp(48px,8vw,80px); font-weight:800; line-height:0.95; text-align:center; margin-bottom:20px; opacity:0; animation:fadeUp 0.6s 0.2s ease forwards; }
+  .landing-title span { color:var(--accent2); }
+  .landing-sub { font-size:17px; color:var(--text-muted); font-weight:300; text-align:center; max-width:420px; line-height:1.6; margin-bottom:64px; opacity:0; animation:fadeUp 0.6s 0.3s ease forwards; }
+  .role-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; opacity:0; animation:fadeUp 0.6s 0.4s ease forwards; }
+  .role-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:36px 40px; cursor:pointer; width:260px; transition:all 0.3s ease; position:relative; overflow:hidden; }
+  .role-card::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity 0.3s; border-radius:16px; }
+  .role-card.teacher::before { background:radial-gradient(circle at 50% 0%,rgba(247,162,120,0.15) 0%,transparent 70%); }
+  .role-card.student::before { background:radial-gradient(circle at 50% 0%,rgba(78,205,196,0.15) 0%,transparent 70%); }
+  .role-card:hover { transform:translateY(-4px); border-color:transparent; }
+  .role-card:hover::before { opacity:1; }
+  .role-card.teacher:hover { box-shadow:0 0 0 1px var(--teacher),0 20px 40px rgba(247,162,120,0.15); }
+  .role-card.student:hover { box-shadow:0 0 0 1px var(--student),0 20px 40px rgba(78,205,196,0.15); }
+  .role-icon { font-size:32px; margin-bottom:16px; display:block; }
+  .role-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; margin-bottom:8px; }
+  .role-card.teacher .role-title { color:var(--teacher); }
+  .role-card.student .role-title { color:var(--student); }
+  .role-desc { font-size:13px; color:var(--text-muted); line-height:1.6; }
+
+  /* APP SHELL */
+  #app { display:none; min-height:100vh; position:relative; z-index:1; }
+  .header { display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--border); background:rgba(15,14,23,0.85); backdrop-filter:blur(20px); position:sticky; top:0; z-index:100; }
+  .header-brand { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; display:flex; align-items:center; gap:10px; }
+  .role-badge { font-family:'Syne',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.15em; text-transform:uppercase; padding:4px 10px; border-radius:100px; border:1px solid; }
+  .role-badge.teacher { color:var(--teacher); border-color:var(--teacher); background:rgba(247,162,120,0.1); }
+  .role-badge.student { color:var(--student); border-color:var(--student); background:rgba(78,205,196,0.1); }
+  .header-actions { display:flex; align-items:center; gap:12px; }
+  .btn-back { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:var(--radius-sm); cursor:pointer; font-family:'Karla',sans-serif; font-size:13px; transition:all 0.2s; }
+  .btn-back:hover { border-color:var(--text-muted); color:var(--text); }
+  .btn-upload-header { display:flex; align-items:center; gap:6px; background:rgba(232,197,71,0.1); border:1px solid rgba(232,197,71,0.3); color:var(--accent); padding:8px 16px; border-radius:var(--radius-sm); cursor:pointer; font-family:'Karla',sans-serif; font-size:13px; font-weight:500; transition:all 0.2s; }
+  .btn-upload-header:hover { background:rgba(232,197,71,0.18); border-color:var(--accent); }
+
+  /* LAYOUT */
+  .main { display:grid; grid-template-columns:280px 1fr; min-height:calc(100vh - 65px); }
+  .sidebar { border-right:1px solid var(--border); padding:24px 20px; background:var(--surface); position:sticky; top:65px; height:calc(100vh - 65px); overflow-y:auto; }
+  .sidebar-section { margin-bottom:28px; }
+  .sidebar-label { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px; }
+  .search-box { position:relative; width:100%; }
+  .search-box input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px 10px 36px; color:var(--text); font-family:'Karla',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+  .search-box input:focus { border-color:var(--accent2); }
+  .search-box input::placeholder { color:var(--text-muted); }
+  .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; pointer-events:none; }
+  .filter-group { display:flex; flex-direction:column; gap:8px; }
+  .filter-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; color:var(--text); font-family:'Karla',sans-serif; font-size:13px; outline:none; cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239998bb' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; transition:border-color 0.2s; }
+  .filter-select:focus { border-color:var(--accent2); }
+  .filter-select option { background:var(--surface2); }
+  .btn-clear { background:none; border:1px dashed var(--border); color:var(--text-muted); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-family:'Karla',sans-serif; font-size:12px; text-align:center; transition:all 0.2s; width:100%; margin-top:4px; }
+  .btn-clear:hover { border-color:var(--danger); color:var(--danger); }
+  .stats-pill { display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:8px; }
+  .stats-pill span:first-child { font-size:12px; color:var(--text-muted); }
+  .stats-pill span:last-child { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:var(--accent); }
+
+  /* CONTENT */
+  .content { padding:28px 32px; }
+  .content-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .content-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; }
+  .questions-grid { display:flex; flex-direction:column; gap:12px; }
+
+  /* CARDS */
+  .q-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; cursor:pointer; transition:all 0.25s ease; position:relative; overflow:hidden; animation:fadeUp 0.3s ease backwards; }
+  .q-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent2); opacity:0; transition:opacity 0.2s; }
+  .q-card:hover { border-color:var(--accent2); transform:translateX(2px); }
+  .q-card:hover::before, .q-card.expanded::before { opacity:1; }
+  .q-card.expanded { border-color:var(--accent2); }
+  .q-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .q-meta { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .tag { font-size:11px; font-weight:500; padding:3px 9px; border-radius:100px; border:1px solid; }
+  .tag.grade { color:var(--accent); border-color:rgba(232,197,71,0.3); background:rgba(232,197,71,0.08); }
+  .tag.subject { color:var(--accent2); border-color:rgba(124,106,240,0.3); background:rgba(124,106,240,0.08); }
+  .tag.tutor { color:var(--accent3); border-color:rgba(78,205,196,0.3); background:rgba(78,205,196,0.08); }
+  .tag.date { color:var(--text-muted); border-color:var(--border); background:transparent; }
+  .tag.type { color:var(--teacher); border-color:rgba(247,162,120,0.3); background:rgba(247,162,120,0.08); }
+  .tag.imported { color:#a8e6a3; border-color:rgba(168,230,163,0.3); background:rgba(168,230,163,0.08); }
+  .tag.diff-easy { color:#7ecb94; border-color:rgba(126,203,148,0.3); background:rgba(126,203,148,0.08); }
+  .tag.diff-medium { color:#e8c547; border-color:rgba(232,197,71,0.3); background:rgba(232,197,71,0.08); }
+  .tag.diff-hard { color:#f7a278; border-color:rgba(247,162,120,0.3); background:rgba(247,162,120,0.08); }
+  .tag.parts { color:#9b8eff; border-color:rgba(155,142,255,0.3); background:rgba(155,142,255,0.08); }
+  .q-num { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.1em; margin-bottom:6px; }
+  .q-text { font-size:15px; line-height:1.55; color:var(--text); flex:1; }
+  .q-chevron { color:var(--text-muted); font-size:16px; transition:transform 0.25s; flex-shrink:0; margin-top:2px; }
+  .q-card.expanded .q-chevron { transform:rotate(180deg); }
+  .q-expanded { display:none; margin-top:20px; padding-top:20px; border-top:1px solid var(--border); }
+  .q-card.expanded .q-expanded { display:block; }
+
+  /* PARTS DISPLAY */
+  .part-block { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:10px; }
+  .part-label { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; color:var(--accent2); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; }
+  .part-prompt { font-size:14px; line-height:1.55; color:var(--text); white-space:pre-wrap; margin-bottom:10px; }
+  .part-options { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .part-option-line { font-size:13px; color:var(--text-muted); padding:6px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); }
+  .part-answer-box { background:rgba(78,205,196,0.06); border:1px solid rgba(78,205,196,0.2); border-radius:var(--radius-sm); padding:10px 12px; margin-top:8px; }
+  .part-answer-label { font-size:10px; font-weight:700; letter-spacing:0.15em; color:var(--accent3); text-transform:uppercase; margin-bottom:4px; font-family:'Syne',sans-serif; }
+  .part-answer-text { font-size:13px; color:var(--text-muted); white-space:pre-wrap; line-height:1.5; }
+  .part-explain-box { background:rgba(232,197,71,0.06); border:1px solid rgba(232,197,71,0.2); border-radius:var(--radius-sm); padding:10px 12px; margin-top:6px; }
+  .part-explain-label { font-size:10px; font-weight:700; letter-spacing:0.15em; color:var(--accent); text-transform:uppercase; margin-bottom:4px; font-family:'Syne',sans-serif; }
+  .part-explain-text { font-size:13px; color:var(--text-muted); white-space:pre-wrap; line-height:1.5; }
+
+  .teacher-actions { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+
+  /* STUDENT EXPANDED */
+  .answer-area { margin-bottom:12px; }
+  .answer-area label { display:block; font-size:10px; color:var(--text-muted); margin-bottom:6px; font-family:'Syne',sans-serif; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; }
+  .answer-area textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text); font-family:'Karla',sans-serif; font-size:14px; resize:vertical; min-height:80px; outline:none; transition:border-color 0.2s; line-height:1.6; }
+  .answer-area textarea:focus { border-color:var(--student); }
+  .mcq-options { display:flex; flex-direction:column; gap:8px; }
+  .mcq-option { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; cursor:pointer; transition:all 0.2s; user-select:none; }
+  .mcq-option:hover { border-color:var(--student); }
+  .mcq-option.selected { border-color:var(--student); background:rgba(78,205,196,0.08); }
+  .mcq-circle { width:18px; height:18px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .mcq-option.selected .mcq-circle { border-color:var(--student); background:var(--student); }
+  .mcq-option.selected .mcq-circle::after { content:''; width:6px; height:6px; background:var(--bg); border-radius:50%; }
+  .mcq-label { font-size:14px; }
+  .student-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+
+  /* BUTTONS */
+  .btn { padding:8px 18px; border-radius:var(--radius-sm); cursor:pointer; font-family:'Karla',sans-serif; font-size:13px; font-weight:500; border:1px solid; transition:all 0.2s; }
+  .btn-primary { background:var(--accent2); border-color:var(--accent2); color:white; }
+  .btn-primary:hover { background:#9184f5; border-color:#9184f5; }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+  .btn-primary.student-primary { background:var(--student); border-color:var(--student); color:var(--bg); }
+  .btn-primary.student-primary:hover { opacity:0.85; }
+  .btn-secondary { background:transparent; border-color:var(--border); color:var(--text-muted); }
+  .btn-secondary:hover { border-color:var(--text-muted); color:var(--text); }
+  .btn-ghost { background:transparent; border-color:transparent; color:var(--text-muted); padding:8px 12px; }
+  .btn-ghost:hover { color:var(--text); }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(10,9,18,0.87); backdrop-filter:blur(8px); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:20px; width:100%; max-width:760px; max-height:90vh; overflow-y:auto; animation:modalIn 0.3s ease; }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(10px);} to{opacity:1;transform:scale(1) translateY(0);} }
+  .modal-header { padding:24px 28px 16px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; position:sticky; top:0; background:var(--surface); z-index:5; }
+  .modal-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; }
+  .modal-sub { font-size:13px; color:var(--text-muted); margin-top:4px; line-height:1.5; }
+  .modal-close { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s; }
+  .modal-close:hover { border-color:var(--danger); color:var(--danger); }
+  .modal-body { padding:20px 28px; }
+
+  /* DROP ZONE */
+  .drop-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:32px 20px; text-align:center; cursor:pointer; transition:all 0.25s ease; position:relative; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color:var(--accent); background:rgba(232,197,71,0.04); }
+  .drop-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .drop-icon { font-size:32px; margin-bottom:10px; }
+  .drop-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:4px; }
+  .drop-sub { font-size:12px; color:var(--text-muted); }
+
+  /* COVER BANNER */
+  .cover-banner { display:none; background:rgba(78,205,196,0.07); border:1px solid rgba(78,205,196,0.25); border-radius:var(--radius-sm); padding:12px 16px; margin-top:14px; font-size:13px; line-height:1.6; }
+  .cover-banner.visible { display:block; }
+  .cover-banner-title { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent3); margin-bottom:6px; }
+  .cover-fields { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .cover-field { font-size:12px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); padding:3px 10px; border-radius:100px; }
+  .cover-field b { color:var(--text); }
+
+  /* META */
+  .meta-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+  .meta-field { display:flex; flex-direction:column; gap:5px; }
+  .meta-field label { font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-muted); }
+  .meta-field input, .meta-field select { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 11px; color:var(--text); font-family:'Karla',sans-serif; font-size:13px; outline:none; transition:border-color 0.2s; }
+  .meta-field input:focus, .meta-field select:focus { border-color:var(--accent2); }
+  .meta-field input.autofilled, .meta-field select.autofilled { border-color:rgba(78,205,196,0.5); background:rgba(78,205,196,0.05); }
+  .meta-field select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239998bb' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+  .meta-field select option { background:var(--surface2); }
+
+  /* PARSE */
+  .parse-status { margin-top:14px; display:none; }
+  .parse-status.visible { display:block; }
+  .parse-bar-bg { height:4px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:6px; }
+  .parse-bar { height:100%; background:var(--accent); border-radius:2px; transition:width 0.4s ease; width:0%; }
+  .parse-msg { font-size:12px; color:var(--text-muted); }
+  .preview-error { background:rgba(255,107,107,0.08); border:1px solid rgba(255,107,107,0.25); border-radius:var(--radius-sm); padding:12px 14px; font-size:13px; color:#ff6b6b; line-height:1.6; margin-top:12px; }
+
+  /* EDITOR */
+  .editor-section { margin-top:18px; display:none; }
+  .editor-section.visible { display:block; }
+  .editor-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; flex-wrap:wrap; }
+  .editor-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; }
+  .editor-stats { display:flex; gap:6px; align-items:center; }
+  .editor-pill { font-size:11px; color:var(--text-muted); background:var(--surface2); padding:3px 9px; border-radius:100px; border:1px solid var(--border); }
+  .editor-pill.accent { color:var(--accent); border-color:rgba(232,197,71,0.3); }
+
+  /* QUESTION NAV */
+  .q-nav { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:14px; max-height:90px; overflow-y:auto; padding:8px; background:var(--surface2); border-radius:var(--radius-sm); border:1px solid var(--border); }
+  .q-nav-btn { background:var(--bg); border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:var(--radius-sm); cursor:pointer; font-family:'Syne',sans-serif; font-size:11px; font-weight:600; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .q-nav-btn:hover { border-color:var(--accent2); color:var(--text); }
+  .q-nav-btn.active { background:var(--accent2); border-color:var(--accent2); color:white; }
+  .q-nav-btn.has-issue { border-color:var(--danger); color:var(--danger); }
+
+  /* QUESTION FORM */
+  .q-form { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
+  .q-form-section { margin-bottom:16px; }
+  .q-form-section:last-child { margin-bottom:0; }
+  .q-form-label { display:flex; align-items:center; justify-content:space-between; font-family:'Syne',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+  .q-form-label-text { display:flex; align-items:center; gap:6px; }
+  .q-form-label-tip { font-family:'Karla',sans-serif; font-weight:400; font-size:11px; text-transform:none; letter-spacing:0; color:var(--text-muted); opacity:0.7; }
+  .q-form input, .q-form select, .q-form textarea {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:9px 12px; color:var(--text); font-family:'Karla',sans-serif; font-size:13px; outline:none;
+    transition:border-color 0.2s; line-height:1.55;
+  }
+  .q-form textarea { min-height:60px; resize:vertical; }
+  .q-form input:focus, .q-form select:focus, .q-form textarea:focus { border-color:var(--accent2); }
+  .q-form select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239998bb' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+  .q-form select option { background:var(--surface2); }
+
+  .q-form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* PART EDITOR */
+  .part-editor { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-top:8px; position:relative; }
+  .part-editor-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; }
+  .part-editor-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; color:var(--accent2); }
+  .part-editor input.part-label-input {
+    width:60px; background:var(--surface); padding:4px 8px; font-size:12px;
+    font-family:'Syne',sans-serif; text-align:center; font-weight:600;
+  }
+  .part-remove-btn { background:none; border:1px solid var(--border); color:var(--text-muted); width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+  .part-remove-btn:hover { border-color:var(--danger); color:var(--danger); }
+  .part-add-btn { background:transparent; border:1px dashed var(--border); color:var(--text-muted); width:100%; padding:10px; border-radius:var(--radius-sm); cursor:pointer; font-size:12px; font-family:'Karla',sans-serif; margin-top:8px; transition:all 0.2s; }
+  .part-add-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+
+  /* SKIPPED PREVIEW */
+  .skipped-block { margin-top:14px; }
+  .skipped-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:all 0.2s; }
+  .skipped-header:hover { border-color:var(--text-muted); }
+  .skipped-label { font-size:12px; color:var(--text-muted); }
+  .skipped-toggle { font-size:11px; color:var(--text-muted); font-family:'Syne',sans-serif; }
+  .skipped-content { display:none; padding:12px 14px; background:var(--bg); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm); font-size:12px; color:var(--text-muted); line-height:1.6; max-height:140px; overflow-y:auto; white-space:pre-wrap; }
+  .skipped-content.visible { display:block; }
+
+  .modal-footer { padding:18px 28px 24px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; position:sticky; bottom:0; background:var(--surface); }
+  .footer-left { font-size:12px; color:var(--text-muted); }
+  .footer-right { display:flex; gap:8px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 20px; font-size:13px; z-index:999; transform:translateY(80px); opacity:0; transition:all 0.3s ease; max-width:300px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--accent3); color:var(--accent3); }
+  .toast.info { border-color:var(--accent2); color:var(--accent2); }
+
+  /* EMPTY */
+  .empty-state { text-align:center; padding:80px 20px; color:var(--text-muted); }
+  .empty-state-icon { font-size:48px; margin-bottom:16px; opacity:0.4; }
+  .empty-state-text { font-size:15px; margin-bottom:8px; }
+  .empty-state-hint { font-size:13px; opacity:0.6; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
+
+  @media(max-width:768px) {
+    .main { grid-template-columns:1fr; }
+    .sidebar { position:relative; top:0; height:auto; }
+    .content { padding:20px 16px; }
+    .header { padding:12px 16px; }
+    .meta-form, .q-form-row { grid-template-columns:1fr; }
+    .modal-body, .modal-header, .modal-footer { padding-left:18px; padding-right:18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="brand">EduVault · Question Portal</div>
+  <h1 class="landing-title">One portal.<br><span>Two views.</span></h1>
+  <p class="landing-sub">Upload Word docs, search questions, and manage your tuition bank.</p>
+  <div class="role-cards">
+    <div class="role-card teacher" onclick="enterApp('teacher')">
+      <span class="role-icon">🎓</span>
+      <div class="role-title">Teacher</div>
+      <div class="role-desc">Upload .docx files, view mark schemes, manage the question bank.</div>
+    </div>
+    <div class="role-card student" onclick="enterApp('student')">
+      <span class="role-icon">📖</span>
+      <div class="role-title">Student</div>
+      <div class="role-desc">Browse questions, write answers, and submit your responses.</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-brand">EduVault <span class="role-badge" id="roleBadge"></span></div>
+    <div class="header-actions">
+      <button class="btn-upload-header" id="uploadHeaderBtn" onclick="openUploadModal()" style="display:none">⬆ Upload Doc</button>
+      <button class="btn-back" onclick="goBack()">← Switch Role</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Search</div>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search questions…" oninput="applyFilters()">
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Filters</div>
+        <div class="filter-group">
+          <select class="filter-select" id="filterGrade" onchange="applyFilters()">
+            <option value="">All Grades</option>
+            <option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option><option>P6</option>
+            <option>S1</option><option>S2</option><option>S3</option><option>S4</option><option>JC1</option><option>JC2</option>
+          </select>
+          <select class="filter-select" id="filterSubject" onchange="applyFilters()">
+            <option value="">All Subjects</option>
+            <option>Mathematics</option><option>English</option><option>Science</option><option>Chinese</option>
+            <option>History</option><option>Geography</option><option>Physics</option><option>Chemistry</option><option>Biology</option>
+          </select>
+          <select class="filter-select" id="filterTutor" onchange="applyFilters()">
+            <option value="">All Tutors</option>
+            <option>Ms Tan</option><option>Mr Lim</option><option>Ms Wong</option><option>Mr Chua</option><option>Ms Lee</option>
+          </select>
+          <select class="filter-select" id="filterType" onchange="applyFilters()">
+            <option value="">All Types</option>
+            <option>MCQ</option><option>Short Answer</option><option>Essay</option><option>Fill in the Blank</option>
+          </select>
+          <select class="filter-select" id="filterDate" onchange="applyFilters()">
+            <option value="">All Dates</option><option>2024</option><option>2025</option><option>2026</option>
+          </select>
+          <select class="filter-select" id="filterDiff" onchange="applyFilters()">
+            <option value="">All Difficulties</option>
+            <option value="Easy">🟢 Easy</option>
+            <option value="Medium">🟡 Medium</option>
+            <option value="Hard">🔴 Hard</option>
+          </select>
+          <button class="btn-clear" onclick="clearFilters()">✕ Clear Filters</button>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Overview</div>
+        <div class="stats-pill"><span>Showing</span><span id="statCount">0</span></div>
+        <div class="stats-pill"><span>Total</span><span id="statTotal">0</span></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="content-header">
+        <div class="content-title" id="contentTitle">Questions</div>
+      </div>
+      <div class="questions-grid" id="questionsGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Upload Question Doc</div>
+        <div class="modal-sub">Cover page is auto-skipped. Each question with parts (a/b/c) becomes one editable record.</div>
+      </div>
+      <button class="modal-close" onclick="closeUploadModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- DROP ZONE -->
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".docx,.doc" onchange="handleFileSelect(this.files[0])">
+        <div class="drop-icon" id="dropIcon">📄</div>
+        <div class="drop-title" id="dropTitle">Drop your Word doc here</div>
+        <div class="drop-sub" id="dropSub">or click to browse · .docx supported</div>
+      </div>
+
+      <!-- COVER BANNER -->
+      <div class="cover-banner" id="coverBanner">
+        <div class="cover-banner-title">✦ Cover page detected — fields auto-filled</div>
+        <div class="cover-fields" id="coverFields"></div>
+      </div>
+
+      <!-- METADATA (defaults; per-question editing happens below) -->
+      <div class="meta-form">
+        <div class="meta-field">
+          <label>Default Grade / Level</label>
+          <select id="metaGrade">
+            <option value="">Select grade…</option>
+            <option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option><option>P6</option>
+            <option>S1</option><option>S2</option><option>S3</option><option>S4</option><option>JC1</option><option>JC2</option>
+          </select>
+        </div>
+        <div class="meta-field">
+          <label>Default Subject</label>
+          <select id="metaSubject">
+            <option value="">Select subject…</option>
+            <option>Mathematics</option><option>English</option><option>Science</option><option>Chinese</option>
+            <option>History</option><option>Geography</option><option>Physics</option><option>Chemistry</option><option>Biology</option>
+          </select>
+        </div>
+        <div class="meta-field">
+          <label>Default Tutor</label>
+          <input type="text" id="metaTutor" placeholder="e.g. Ms Tan">
+        </div>
+        <div class="meta-field">
+          <label>Default Type</label>
+          <select id="metaType">
+            <option value="MCQ">MCQ</option>
+            <option value="Short Answer">Short Answer</option>
+            <option value="Essay">Essay</option>
+            <option value="Fill in the Blank">Fill in the Blank</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PARSE PROGRESS -->
+      <div class="parse-status" id="parseStatus">
+        <div class="parse-bar-bg"><div class="parse-bar" id="parseBar"></div></div>
+        <div class="parse-msg" id="parseMsg">Reading document…</div>
+      </div>
+
+      <!-- ERROR -->
+      <div id="parseError"></div>
+
+      <!-- SKIPPED COVER PREVIEW -->
+      <div class="skipped-block" id="skippedBlock" style="display:none;">
+        <div class="skipped-header" onclick="toggleSkipped()">
+          <span class="skipped-label">⏭ Cover page text skipped <span id="skippedCount" style="opacity:0.6"></span></span>
+          <span class="skipped-toggle" id="skippedToggle">show ▾</span>
+        </div>
+        <div class="skipped-content" id="skippedContent"></div>
+      </div>
+
+      <!-- EDITOR -->
+      <div class="editor-section" id="editorSection">
+        <div class="editor-header">
+          <div class="editor-title">Edit Questions Before Import</div>
+          <div class="editor-stats">
+            <span class="editor-pill accent" id="editorCount">0 questions</span>
+          </div>
+        </div>
+
+        <!-- Question navigation -->
+        <div class="q-nav" id="qNav"></div>
+
+        <!-- Active question form -->
+        <div class="q-form" id="qForm"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <div class="footer-left" id="footerLeft"></div>
+      <div class="footer-right">
+        <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+        <button class="btn btn-primary" id="importBtn" onclick="importQuestions()" disabled>Import All</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── SAMPLE DATA ──────────────────────────────────────────────────────────────
+let ALL_QUESTIONS = [
+  { id:1, mainText:"A train travels from Station A to Station B at 80 km/h and returns at 60 km/h. What is the average speed for the entire journey?", parts:[{label:'',prompt:'',options:[],answer:'68.57 km/h',explanation:'Use harmonic mean: 2v₁v₂/(v₁+v₂) = 2×80×60/140 = 68.57 km/h'}], subject:"Mathematics", grade:"S3", tutor:"Mr Lim", type:"Short Answer", difficulty:"Medium", date:"2025", uploadDate:"15 Jan 2025" },
+  { id:2, mainText:"Solve each of the following linear equations.", parts:[{label:'a)',prompt:'5x + 2 = 2x + 14',options:['x = 2','x = 3','x = 4','x = 6'],answer:'C) x = 4',explanation:'Collect x-terms: 3x = 12, so x = 4'},{label:'b)',prompt:'7y − 9 = 2y + 11',options:['y = 2','y = 3','y = 4','y = 5'],answer:'C) y = 4',explanation:'5y = 20, so y = 4'}], subject:"Mathematics", grade:"S1", tutor:"Mr Chua", type:"MCQ", difficulty:"Easy", date:"2026", uploadDate:"3 Feb 2026" },
+  { id:3, mainText:"The mitochondria is often called the __________ of the cell because it produces most of the cell's supply of ATP.", parts:[{label:'',prompt:'',options:[],answer:'powerhouse',explanation:''}], subject:"Biology", grade:"S3", tutor:"Ms Lee", type:"Fill in the Blank", difficulty:"Easy", date:"2026", uploadDate:"7 Jan 2026" }
+];
+let nextId = 100;
+let currentRole = null;
+let filteredQuestions = [];
+let expandedId = null;
+let studentAnswers = {};
+
+// Parser state
+let parsedQuestions = [];   // array of {mainText, parts:[{label,prompt,options,answer,explanation}], type, difficulty}
+let activeEditorIdx = 0;
+let skippedCoverText = '';
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function enterApp(role) {
+  currentRole = role;
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('roleBadge').textContent = role==='teacher'?'Teacher':'Student';
+  document.getElementById('roleBadge').className = 'role-badge '+role;
+  document.getElementById('contentTitle').textContent = role==='teacher'?'Question Bank':'Practice Questions';
+  document.getElementById('uploadHeaderBtn').style.display = role==='teacher'?'flex':'none';
+  document.getElementById('statTotal').textContent = ALL_QUESTIONS.length;
+  applyFilters();
+}
+function goBack() { currentRole=null; document.getElementById('app').style.display='none'; document.getElementById('landing').style.display='flex'; clearFilters(); expandedId=null; }
+
+// ─── FILTERS ──────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const s=document.getElementById('searchInput').value.toLowerCase();
+  const g=document.getElementById('filterGrade').value;
+  const sub=document.getElementById('filterSubject').value;
+  const t=document.getElementById('filterTutor').value;
+  const ty=document.getElementById('filterType').value;
+  const d=document.getElementById('filterDate').value;
+  const diff=document.getElementById('filterDiff').value;
+  filteredQuestions = ALL_QUESTIONS.filter(q=>{
+    if(g&&q.grade!==g)return false;
+    if(sub&&q.subject!==sub)return false;
+    if(t&&q.tutor!==t)return false;
+    if(ty&&q.type!==ty)return false;
+    if(d&&q.date!==d)return false;
+    if(diff&&(q.difficulty||'')!==diff)return false;
+    if(s){
+      const hay = (q.mainText+' '+(q.parts||[]).map(p=>p.prompt+' '+p.answer).join(' ')+' '+(q.subject||'')+' '+(q.tutor||'')).toLowerCase();
+      if(!hay.includes(s))return false;
+    }
+    return true;
+  });
+  document.getElementById('statCount').textContent=filteredQuestions.length;
+  renderQuestions();
+}
+function clearFilters() { ['searchInput','filterGrade','filterSubject','filterTutor','filterType','filterDate','filterDiff'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); applyFilters(); }
+function diffIcon(d){ return d==='Easy'?'🟢':d==='Medium'?'🟡':d==='Hard'?'🔴':'⚪'; }
+
+// ─── RENDER QUESTION CARDS ───────────────────────────────────────────────────
+function renderQuestions() {
+  const grid = document.getElementById('questionsGrid');
+  if (!filteredQuestions.length) {
+    const noQ = currentRole==='teacher' && !ALL_QUESTIONS.length;
+    grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">${noQ?'📂':'🔍'}</div><div class="empty-state-text">${noQ?'No questions yet.':'No questions match your filters.'}</div>${noQ?'<div class="empty-state-hint">Click "Upload Doc" to get started.</div>':''}</div>`;
+    return;
+  }
+  grid.innerHTML = filteredQuestions.map((q,i)=>{
+    const exp = expandedId===q.id;
+    const partCount = (q.parts||[]).filter(p=>p.prompt||p.options.length).length;
+    return `<div class="q-card${exp?' expanded':''}" id="qcard-${q.id}" onclick="toggleCard(${q.id})" style="animation-delay:${Math.min(i,12)*0.04}s">
+      <div class="q-card-header">
+        <div style="flex:1">
+          <div class="q-meta">
+            ${q.grade?`<span class="tag grade">${q.grade}</span>`:''}
+            ${q.subject?`<span class="tag subject">${q.subject}</span>`:''}
+            ${q.tutor?`<span class="tag tutor">👤 ${q.tutor}</span>`:''}
+            <span class="tag type">${q.type}</span>
+            ${q.difficulty?`<span class="tag diff-${q.difficulty.toLowerCase()}">${diffIcon(q.difficulty)} ${q.difficulty}</span>`:''}
+            ${partCount>1?`<span class="tag parts">${partCount} parts</span>`:''}
+            ${q.uploadDate?`<span class="tag date">📅 ${q.uploadDate}</span>`:''}
+            ${q.imported?'<span class="tag imported">⬆ Imported</span>':''}
+          </div>
+          <div class="q-text">${escapeHtml(q.mainText).replace(/\n/g,'<br>')}</div>
+        </div>
+        <span class="q-chevron">▾</span>
+      </div>
+      ${exp?(currentRole==='teacher'?renderTeacher(q):renderStudent(q)):''}
+    </div>`;
+  }).join('');
+}
+
+function renderTeacher(q) {
+  const partsHtml = (q.parts||[]).map(p => {
+    const optsHtml = (p.options||[]).length ? `
+      <div class="part-options">
+        ${p.options.map((o,i)=>`<div class="part-option-line">${String.fromCharCode(65+i)}) ${escapeHtml(o)}</div>`).join('')}
+      </div>` : '';
+    const ansHtml = p.answer ? `<div class="part-answer-box"><div class="part-answer-label">✓ Answer</div><div class="part-answer-text">${escapeHtml(p.answer)}</div></div>` : '';
+    const expHtml = p.explanation ? `<div class="part-explain-box"><div class="part-explain-label">📋 Explanation</div><div class="part-explain-text">${escapeHtml(p.explanation)}</div></div>` : '';
+    if (!p.label && !p.prompt && !optsHtml && !ansHtml && !expHtml) return '';
+    return `<div class="part-block">
+      ${p.label?`<div class="part-label">Part ${p.label}</div>`:''}
+      ${p.prompt?`<div class="part-prompt">${escapeHtml(p.prompt)}</div>`:''}
+      ${optsHtml}
+      ${ansHtml}
+      ${expHtml}
+    </div>`;
+  }).join('');
+
+  return `<div class="q-expanded">
+    ${partsHtml||'<div style="color:var(--text-muted);font-size:13px;font-style:italic;">No additional parts.</div>'}
+    <div class="teacher-actions">
+      <button class="btn btn-secondary" onclick="event.stopPropagation();copyQ(${q.id})">📋 Copy</button>
+      <button class="btn btn-ghost" onclick="event.stopPropagation();deleteQ(${q.id})">🗑 Remove</button>
+    </div>
+  </div>`;
+}
+
+function renderStudent(q) {
+  const parts = (q.parts||[]).filter(p=>p.prompt||p.options.length||p.label);
+  if (!parts.length) {
+    // Single-question fallback with main text only
+    const saved = studentAnswers[q.id]||'';
+    return `<div class="q-expanded"><div class="answer-area"><label>Your Answer</label><textarea id="ans-${q.id}-0" placeholder="Write your answer…" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">${escapeHtml(saved)}</textarea></div>
+    <div class="student-actions">
+      <button class="btn btn-primary student-primary" onclick="event.stopPropagation();submitAns(${q.id})">Submit</button>
+      <button class="btn btn-secondary" onclick="event.stopPropagation();saveAns(${q.id})">Save Draft</button>
+    </div></div>`;
+  }
+
+  const partsHtml = parts.map((p,idx) => {
+    const labelHtml = p.label ? `<div class="part-label">Part ${p.label}</div>` : '';
+    const promptHtml = p.prompt ? `<div class="part-prompt">${escapeHtml(p.prompt)}</div>` : '';
+    let inputHtml = '';
+    if (p.options && p.options.length) {
+      const selectedIdx = studentAnswers[q.id+'_p'+idx+'_mcq'];
+      inputHtml = `<div class="mcq-options">${p.options.map((o,i)=>`
+        <label class="mcq-option${selectedIdx===i?' selected':''}" onclick="event.stopPropagation();selectMCQ(${q.id},${idx},${i},this)">
+          <div class="mcq-circle"></div>
+          <span class="mcq-label">${String.fromCharCode(65+i)}) ${escapeHtml(o)}</span>
+        </label>`).join('')}</div>`;
+    } else {
+      const saved = studentAnswers[q.id+'_p'+idx]||'';
+      inputHtml = `<div class="answer-area" style="margin-top:8px;"><textarea id="ans-${q.id}-${idx}" placeholder="Your answer…" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">${escapeHtml(saved)}</textarea></div>`;
+    }
+    return `<div class="part-block">${labelHtml}${promptHtml}${inputHtml}</div>`;
+  }).join('');
+
+  return `<div class="q-expanded">${partsHtml}<div class="student-actions">
+    <button class="btn btn-primary student-primary" onclick="event.stopPropagation();submitAns(${q.id})">Submit All</button>
+    <button class="btn btn-secondary" onclick="event.stopPropagation();saveAns(${q.id})">Save Draft</button>
+  </div></div>`;
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+function toggleCard(id){ expandedId=expandedId===id?null:id; renderQuestions(); if(expandedId) setTimeout(()=>{const c=document.getElementById('qcard-'+id);if(c)c.scrollIntoView({behavior:'smooth',block:'nearest'});},50); }
+function selectMCQ(qId,partIdx,optIdx){ studentAnswers[qId+'_p'+partIdx+'_mcq']=optIdx; renderQuestions(); }
+function saveAns(qId){
+  const q=ALL_QUESTIONS.find(q=>q.id===qId); if(!q)return;
+  (q.parts||[]).forEach((p,i)=>{ const ta=document.getElementById('ans-'+qId+'-'+i); if(ta) studentAnswers[qId+'_p'+i]=ta.value; });
+  showToast('Draft saved!','success');
+}
+function submitAns(qId){
+  const q=ALL_QUESTIONS.find(q=>q.id===qId); if(!q)return;
+  let any=false;
+  (q.parts||[]).forEach((p,i)=>{
+    const ta=document.getElementById('ans-'+qId+'-'+i);
+    if(ta && ta.value.trim()){ studentAnswers[qId+'_p'+i]=ta.value; any=true; }
+    if(studentAnswers[qId+'_p'+i+'_mcq']!==undefined) any=true;
+  });
+  if(!any){ showToast('Please answer at least one part first.','info'); return; }
+  showToast('Answers submitted! ✓','success');
+}
+function copyQ(id){
+  const q=ALL_QUESTIONS.find(q=>q.id===id); if(!q)return;
+  let txt = `[${q.grade}] ${q.subject} — ${q.type}${q.difficulty?' · '+q.difficulty:''}\n\n${q.mainText}`;
+  (q.parts||[]).forEach(p=>{
+    if(p.label||p.prompt){ txt+=`\n\n${p.label?p.label+' ':''}${p.prompt||''}`; }
+    if(p.options&&p.options.length){ p.options.forEach((o,i)=>txt+=`\n  ${String.fromCharCode(65+i)}) ${o}`); }
+    if(p.answer) txt+=`\nAnswer: ${p.answer}`;
+    if(p.explanation) txt+=`\nExplanation: ${p.explanation}`;
+  });
+  navigator.clipboard.writeText(txt).then(()=>showToast('Copied!','info'));
+}
+function deleteQ(id){ ALL_QUESTIONS=ALL_QUESTIONS.filter(q=>q.id!==id); if(expandedId===id)expandedId=null; document.getElementById('statTotal').textContent=ALL_QUESTIONS.length; applyFilters(); showToast('Removed.','info'); }
+function escapeHtml(s){ if(!s)return ''; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UPLOAD MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openUploadModal(){ document.getElementById('uploadModal').classList.add('open'); resetModal(); }
+function closeUploadModal(){ document.getElementById('uploadModal').classList.remove('open'); }
+
+function resetModal(){
+  parsedQuestions=[]; activeEditorIdx=0; skippedCoverText='';
+  document.getElementById('fileInput').value='';
+  document.getElementById('dropIcon').textContent='📄';
+  document.getElementById('dropTitle').textContent='Drop your Word doc here';
+  document.getElementById('dropSub').textContent='or click to browse · .docx supported';
+  document.getElementById('parseStatus').classList.remove('visible');
+  document.getElementById('editorSection').classList.remove('visible');
+  document.getElementById('parseError').innerHTML='';
+  document.getElementById('parseBar').style.width='0%';
+  document.getElementById('coverBanner').classList.remove('visible');
+  document.getElementById('skippedBlock').style.display='none';
+  document.getElementById('footerLeft').textContent='';
+  ['metaGrade','metaSubject','metaTutor','metaType'].forEach(id=>{const el=document.getElementById(id); if(el)el.classList.remove('autofilled');});
+  const btn=document.getElementById('importBtn'); btn.disabled=true;
+}
+
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)handleFileSelect(f);});
+
+function handleFileSelect(file){
+  if(!file)return;
+  if(!file.name.match(/\.docx?$/i)){ showParseError('Please upload a .docx file.'); return; }
+  document.getElementById('dropIcon').textContent='⏳';
+  document.getElementById('dropTitle').textContent=file.name;
+  document.getElementById('dropSub').textContent=(file.size/1024).toFixed(1)+' KB · Parsing…';
+  parseDocx(file);
+}
+
+async function parseDocx(file){
+  const status=document.getElementById('parseStatus');
+  const bar=document.getElementById('parseBar');
+  const msg=document.getElementById('parseMsg');
+  document.getElementById('parseError').innerHTML='';
+  document.getElementById('editorSection').classList.remove('visible');
+  status.classList.add('visible');
+  try {
+    setBar(bar,msg,15,'Reading file…');
+    const ab=await file.arrayBuffer();
+    setBar(bar,msg,45,'Extracting text from document…');
+    const result=await mammoth.extractRawText({arrayBuffer:ab});
+    const raw=result.value;
+    setBar(bar,msg,75,'Detecting cover page and questions…');
+    if(!raw.trim()){ showParseError('Document appears empty.'); return; }
+
+    parsedQuestions = parseDocument(raw);
+    setBar(bar,msg,100,`Done — found ${parsedQuestions.length} question${parsedQuestions.length!==1?'s':''}.`);
+
+    if(!parsedQuestions.length){
+      showParseError('No questions found. Make sure the doc uses Q1/Q2 or 1./2. style numbering for main questions.');
+      return;
+    }
+    activeEditorIdx=0;
+    showEditor();
+    document.getElementById('importBtn').disabled=false;
+    document.getElementById('dropIcon').textContent='✅';
+  } catch(err){
+    showParseError('Could not read the file.\n\n'+err.message);
+    document.getElementById('dropIcon').textContent='❌';
+  }
+}
+
+function setBar(bar,msg,pct,text){ bar.style.width=pct+'%'; msg.textContent=text; }
+function showParseError(m){ document.getElementById('parseStatus').classList.remove('visible'); document.getElementById('parseError').innerHTML=`<div class="preview-error">⚠️ ${m.replace(/\n/g,'<br>')}</div>`; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PARSER
+// ═══════════════════════════════════════════════════════════════════════════
+function parseDocument(raw) {
+  // 1. Split cover page from question body
+  const { coverText, bodyText } = splitCoverAndBody(raw);
+  skippedCoverText = coverText || '';
+
+  // 2. Extract metadata from cover and apply to defaults
+  if (coverText) {
+    const meta = parseCoverMeta(coverText);
+    applyCoverMeta(meta);
+    showSkippedCover(coverText);
+  }
+
+  // 3. Parse the question body into structured questions with parts
+  return extractStructuredQuestions(bodyText);
+}
+
+// ─── SPLIT COVER vs BODY ──────────────────────────────────────────────────────
+// The cover page contains: title, level, topic, admin table, instructions.
+// The body starts at the FIRST main question marker (Question 1, Q1, 1., 1))
+function splitCoverAndBody(raw) {
+  const lines = raw.split('\n');
+
+  // Match: "Question 1", "Q1", "Q. 1", "1.", "1)" — at start of line, optionally followed by [EASY] etc.
+  const mainQRe = /^\s*(?:\*\*)?(?:Question\s+|Q\.?\s*)?(\d+)\s*(?:[.)\s]|$)/i;
+
+  let bodyStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i].trim();
+    if (!l) continue;
+    const m = l.match(mainQRe);
+    if (m && parseInt(m[1]) === 1) {
+      // Make sure it actually looks like a question header, not a stray "1" in cover
+      // A real question header either says "Question N", or starts with N. / N) followed by content
+      if (/^(?:\*\*)?Question\s+\d/i.test(l) || /^\s*\d+[.)]\s/.test(l)) {
+        bodyStart = i; break;
+      }
+    }
+  }
+
+  // If no Q1 found, find first numbered question of any number
+  if (bodyStart === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i].trim();
+      if (/^(?:\*\*)?Question\s+\d/i.test(l) || /^\s*\d+[.)]\s/.test(l) || /^Q\d+/i.test(l)) {
+        bodyStart = i; break;
+      }
+    }
+  }
+
+  if (bodyStart === -1) return { coverText: '', bodyText: raw };
+
+  return {
+    coverText: lines.slice(0, bodyStart).join('\n').trim(),
+    bodyText: lines.slice(bodyStart).join('\n').trim()
+  };
+}
+
+// ─── COVER METADATA ───────────────────────────────────────────────────────────
+function parseCoverMeta(coverText) {
+  const meta = {};
+  const lines = coverText.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  const gradeMap = { 'p1':'P1','p2':'P2','p3':'P3','p4':'P4','p5':'P5','p6':'P6','primary 1':'P1','primary 2':'P2','primary 3':'P3','primary 4':'P4','primary 5':'P5','primary 6':'P6','s1':'S1','s2':'S2','s3':'S3','s4':'S4','sec 1':'S1','sec 2':'S2','sec 3':'S3','sec 4':'S4','secondary 1':'S1','secondary 2':'S2','secondary 3':'S3','secondary 4':'S4','jc1':'JC1','jc2':'JC2' };
+  const subjectList = ['mathematics','math','english','science','chinese','history','geography','physics','chemistry','biology'];
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+
+    // Grade detection
+    if (!meta.grade) {
+      const gm = line.match(/(?:level|grade|class)\s*[:：]?\s*(.+)/i);
+      if (gm) {
+        const v = gm[1].trim().toLowerCase();
+        for (const [k,gv] of Object.entries(gradeMap)) { if(v===k||v.startsWith(k)){ meta.grade=gv; break; } }
+        // Also try to extract subject from same line, e.g. "Sec 1 Mathematics"
+        if (!meta.subject) {
+          for (const s of subjectList) { if(v.includes(s)){ meta.subject=cap(s==='math'?'mathematics':s); break; } }
+        }
+      } else {
+        for (const [k,gv] of Object.entries(gradeMap)) {
+          const re = new RegExp('\\b'+k.replace(/\s/g,'\\s*')+'\\b','i');
+          if(re.test(line)){ meta.grade=gv; break; }
+        }
+      }
+    }
+
+    // Subject detection
+    if (!meta.subject) {
+      const sm = line.match(/(?:subject|topic)\s*[:：]?\s*(.+)/i);
+      if (sm) {
+        const v = sm[1].trim().toLowerCase();
+        for (const s of subjectList) { if(v.includes(s)){ meta.subject=cap(s==='math'?'mathematics':s); break; } }
+      } else {
+        for (const s of subjectList) { if(lower.includes(s)){ meta.subject=cap(s==='math'?'mathematics':s); break; } }
+      }
+    }
+
+    // Tutor detection
+    if (!meta.tutor) {
+      const tm = line.match(/(?:tutor|teacher|instructor|prepared by)\s*[:：]?\s*(.+)/i);
+      if (tm) meta.tutor = tm[1].trim();
+      else { const nm = line.match(/^(Ms\.?|Mr\.?|Mrs\.?|Dr\.?)\s+[A-Z]\w+/); if(nm) meta.tutor = line.trim(); }
+    }
+  }
+  return meta;
+}
+
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1).toLowerCase(); }
+
+function applyCoverMeta(meta) {
+  const banner = document.getElementById('coverBanner');
+  const fields = document.getElementById('coverFields');
+
+  if (!meta.grade && !meta.subject && !meta.tutor) {
+    banner.classList.remove('visible'); return;
+  }
+
+  const setField = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el || !val) return;
+    if (el.tagName === 'SELECT') {
+      const opt = Array.from(el.options).find(o=>o.value===val||o.text===val);
+      if (opt) { el.value = opt.value; el.classList.add('autofilled'); }
+    } else { el.value = val; el.classList.add('autofilled'); }
+  };
+
+  if (meta.grade) setField('metaGrade', meta.grade);
+  if (meta.subject) setField('metaSubject', meta.subject);
+  if (meta.tutor) setField('metaTutor', meta.tutor);
+
+  fields.innerHTML = Object.entries(meta).filter(([,v])=>v).map(([k,v])=>`<span class="cover-field"><b>${cap(k)}:</b> ${escapeHtml(v)}</span>`).join('');
+  banner.classList.add('visible');
+}
+
+function showSkippedCover(text) {
+  const block = document.getElementById('skippedBlock');
+  const content = document.getElementById('skippedContent');
+  const count = document.getElementById('skippedCount');
+  const lineCount = text.split('\n').filter(l=>l.trim()).length;
+  count.textContent = `(${lineCount} lines)`;
+  content.textContent = text;
+  block.style.display = 'block';
+}
+
+function toggleSkipped() {
+  const c = document.getElementById('skippedContent');
+  const t = document.getElementById('skippedToggle');
+  if (c.classList.contains('visible')) { c.classList.remove('visible'); t.textContent='show ▾'; }
+  else { c.classList.add('visible'); t.textContent='hide ▴'; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STRUCTURED QUESTION EXTRACTION
+// ═══════════════════════════════════════════════════════════════════════════
+// Output: array of { mainText, parts:[{label,prompt,options,answer,explanation}], type, difficulty }
+function extractStructuredQuestions(bodyText) {
+  // Strip markdown bold/italic markers — mammoth may emit them depending on version
+  const cleanLine = l => l.replace(/\*\*/g,'').replace(/(?<!\w)\*(.+?)\*(?!\w)/g,'$1').trim();
+
+  const lines = bodyText.split('\n').map(l => cleanLine(l));
+
+  // Regexes
+  const mainQRe = /^(?:Question\s+|Q\.?\s*)(\d+)\b\s*(.*)$/i;       // "Question 1 [EASY]"
+  const mainQNumRe = /^(\d+)[.)]\s+(.+)$/;                          // "1." or "1)"
+  const subPartRe = /^\(?([a-z])[).]\s+(.*)$/i;                     // a) b)  or  (a)
+  const subPartRomanRe = /^\(?(i{1,3}|iv|v|vi{0,3}|ix|x)[).]\s+(.*)$/i;
+  const subPartNumRe = /^(\d+)\.(\d+)\s+(.+)$/;                     // 1.1, 1.2
+  const optionRe = /^\(?([A-D])[).]\s+(.+)$/;                       // A)  x = 4   or  (A) x = 4
+  const answerRe = /^(?:Answer|Ans|A)\s*[:：]\s*(.+)$/i;
+  const workingRe = /^(?:Working|Solution|Explanation|Explain|Sol)\s*[:：]?\s*(.*)$/i;
+  const difficultyRe = /\[(easy|medium|hard)\]|\((easy|medium|hard)\)|\*?difficulty\s*[:：]\s*(easy|medium|hard)\*?/i;
+
+  const questions = [];
+  let currentQ = null;
+  let currentPart = null;
+  let mode = null;  // 'main' | 'prompt' | 'options' | 'answer' | 'explanation'
+
+  function flushPart() {
+    if (currentPart && currentQ) { currentQ.parts.push(currentPart); currentPart = null; }
+  }
+
+  function startQuestion(text) {
+    flushPart();
+    if (currentQ) questions.push(currentQ);
+    const { difficulty, cleaned } = extractDifficulty(text);
+    currentQ = { mainText: cleaned, parts: [], difficulty };
+    mode = 'main';
+  }
+
+  function startPart(label, text) {
+    flushPart();
+    const { difficulty, cleaned } = extractDifficulty(text);
+    currentPart = { label, prompt: cleaned, options: [], answer: '', explanation: '' };
+    if (difficulty && currentQ && !currentQ.difficulty) currentQ.difficulty = difficulty;
+    mode = 'prompt';
+  }
+
+  function extractDifficulty(text) {
+    const m = text.match(difficultyRe);
+    if (m) {
+      const tier = (m[1]||m[2]||m[3]).toLowerCase();
+      const cleaned = text.replace(difficultyRe,'').replace(/\s{2,}/g,' ').trim();
+      return { difficulty: cap(tier), cleaned };
+    }
+    return { difficulty: null, cleaned: text };
+  }
+
+  // Footer / page-number lines to ignore
+  const isFooterLine = l => /(\bpg\.?\s*\d*$|\bpage\s+\d+|\|\s*sec\s*\d|tuition\s+centre\s+\|)/i.test(l);
+
+  for (let i=0; i<lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    if (isFooterLine(line)) continue;
+
+    // 1. Main question header — "Question 1" or "Question 1 [EASY]"
+    let m = line.match(mainQRe);
+    if (m) {
+      // "Question 1" by itself + optional inline content
+      const inlineExtra = m[2] ? m[2].trim() : '';
+      startQuestion(inlineExtra);
+      continue;
+    }
+
+    // 1b. Numbered main question — "1." or "1)"
+    m = line.match(mainQNumRe);
+    if (m && parseInt(m[1]) <= 200) {
+      // Make sure this isn't actually a sub-part labeled with a digit (1.1) — already ruled out by regex
+      // Make sure it's not an MCQ option (A/B/C/D handled by optionRe; numeric MCQs are unusual)
+      // To be safe: only treat as main question if not currently inside an MCQ options block
+      if (mode !== 'options') {
+        startQuestion(m[2].trim());
+        continue;
+      }
+    }
+
+    if (!currentQ) continue;  // skip orphan content before first question
+
+    // 2a. Sub-part: a) b) c) — detect BEFORE option, since "a)" could be confused with "A)"
+    let sm = line.match(subPartRe);
+    if (sm && sm[1] === sm[1].toLowerCase()) {  // lowercase = sub-part, uppercase = MCQ option
+      startPart(sm[1]+')', sm[2].trim());
+      continue;
+    }
+
+    // 2b. Numbered sub-part: 1.1
+    let snm = line.match(subPartNumRe);
+    if (snm) { startPart(snm[1]+'.'+snm[2], snm[3].trim()); continue; }
+
+    // 2c. Roman numeral sub-part
+    let srm = line.match(subPartRomanRe);
+    if (srm) { startPart('('+srm[1]+')', srm[2].trim()); continue; }
+
+    // 3. Answer
+    let am = line.match(answerRe);
+    if (am) {
+      if (!currentPart) currentPart = { label:'', prompt:'', options:[], answer:'', explanation:'' };
+      currentPart.answer = am[1].trim();
+      mode = 'answer';
+      continue;
+    }
+
+    // 4. Working / Explanation
+    let wm = line.match(workingRe);
+    if (wm) {
+      if (!currentPart) currentPart = { label:'', prompt:'', options:[], answer:'', explanation:'' };
+      currentPart.explanation = wm[1].trim();
+      mode = 'explanation';
+      continue;
+    }
+
+    // 5. MCQ option line — uppercase "A)" or "(A)"
+    let om = line.match(optionRe);
+    if (om && currentPart) {
+      // The doc has options on same line: "A)  x = 4                    B)  x = 6"
+      // So we need to also split inline if multiple options on one line
+      const inlineOpts = splitInlineOptions(line);
+      if (inlineOpts.length > 1) {
+        inlineOpts.forEach(o => currentPart.options.push(o));
+      } else {
+        currentPart.options.push(om[2].trim());
+      }
+      mode = 'options';
+      continue;
+    }
+
+    // 6. Continuation of current mode
+    if (currentPart) {
+      if (mode === 'answer') currentPart.answer += '\n' + line;
+      else if (mode === 'explanation') currentPart.explanation += '\n' + line;
+      else if (mode === 'options' && currentPart.options.length) {
+        currentPart.options[currentPart.options.length-1] += ' ' + line;
+      }
+      else if (mode === 'prompt' || !mode) currentPart.prompt += (currentPart.prompt?'\n':'') + line;
+    } else {
+      // Continuation of main question (intro line, instructions)
+      currentQ.mainText += (currentQ.mainText?'\n':'') + line;
+    }
+  }
+
+  // Flush
+  if (currentPart && currentQ) currentQ.parts.push(currentPart);
+  if (currentQ) questions.push(currentQ);
+
+  // Post-process
+  return questions.map(q => {
+    if (!q.parts.length) q.parts = [{label:'',prompt:'',options:[],answer:'',explanation:''}];
+    q.parts = q.parts.filter(p => p.label || p.prompt || p.options.length || p.answer || p.explanation);
+    if (!q.parts.length) q.parts = [{label:'',prompt:'',options:[],answer:'',explanation:''}];
+    q.type = inferType(q);
+    // Trim trailing whitespace
+    q.mainText = (q.mainText||'').trim();
+    q.parts.forEach(p => {
+      p.prompt = (p.prompt||'').trim();
+      p.answer = (p.answer||'').trim();
+      p.explanation = (p.explanation||'').trim();
+    });
+    return q;
+  });
+}
+
+// Split a line that contains multiple inline MCQ options:
+// "A)  x = 4                    B)  x = 6"  -->  ["x = 4", "x = 6"]
+function splitInlineOptions(line) {
+  // Find all positions of "A)", "B)", "C)", "D)" or "(A)" etc.
+  const re = /\(?([A-D])[).]\s+/g;
+  const matches = [];
+  let m;
+  while ((m = re.exec(line)) !== null) {
+    matches.push({ idx: m.index, end: m.index + m[0].length, letter: m[1] });
+  }
+  if (matches.length < 2) return [];
+  const opts = [];
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].end;
+    const end = i+1 < matches.length ? matches[i+1].idx : line.length;
+    opts.push(line.slice(start, end).trim());
+  }
+  return opts;
+}
+
+function inferType(q) {
+  // If any part has options, it's MCQ
+  if (q.parts.some(p => p.options && p.options.length>=2)) return 'MCQ';
+  const allText = q.mainText + ' ' + q.parts.map(p=>p.prompt).join(' ');
+  if (/_{3,}|\bblank\b/i.test(allText)) return 'Fill in the Blank';
+  if (/\b(write|compose|essay|discuss|describe in detail|explain in detail)\b/i.test(allText)) return 'Essay';
+  return 'Short Answer';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EDITOR
+// ═══════════════════════════════════════════════════════════════════════════
+function showEditor() {
+  document.getElementById('editorSection').classList.add('visible');
+  document.getElementById('editorCount').textContent = `${parsedQuestions.length} question${parsedQuestions.length!==1?'s':''}`;
+  document.getElementById('footerLeft').textContent = `Editing Q${activeEditorIdx+1} of ${parsedQuestions.length}`;
+  renderQNav();
+  renderEditorForm();
+}
+
+function renderQNav() {
+  const nav = document.getElementById('qNav');
+  nav.innerHTML = parsedQuestions.map((q,i)=>`<button class="q-nav-btn${i===activeEditorIdx?' active':''}" onclick="selectEditorQ(${i})">Q${i+1}</button>`).join('');
+}
+
+function selectEditorQ(idx) {
+  // Save current first
+  saveEditorForm();
+  activeEditorIdx = idx;
+  document.getElementById('footerLeft').textContent = `Editing Q${idx+1} of ${parsedQuestions.length}`;
+  renderQNav();
+  renderEditorForm();
+}
+
+function renderEditorForm() {
+  const q = parsedQuestions[activeEditorIdx];
+  if (!q) return;
+  const form = document.getElementById('qForm');
+
+  const partsHtml = q.parts.map((p,idx) => `
+    <div class="part-editor" id="part-edit-${idx}">
+      <div class="part-editor-header">
+        <div class="part-editor-title">Part ${idx+1}</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" class="part-label-input" data-pidx="${idx}" data-field="label" value="${escapeHtml(p.label||'')}" placeholder="a)" oninput="markDirty()">
+          <button class="part-remove-btn" onclick="removePart(${idx})" title="Remove this part">✕</button>
+        </div>
+      </div>
+      <div class="q-form-section">
+        <div class="q-form-label"><span class="q-form-label-text">Question Part <span class="q-form-label-tip">— prompt for this sub-question</span></span></div>
+        <textarea data-pidx="${idx}" data-field="prompt" oninput="markDirty()">${escapeHtml(p.prompt||'')}</textarea>
+      </div>
+      <div class="q-form-section">
+        <div class="q-form-label"><span class="q-form-label-text">Options <span class="q-form-label-tip">— one per line, leave empty for non-MCQ</span></span></div>
+        <textarea data-pidx="${idx}" data-field="options" rows="3" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D" oninput="markDirty()">${escapeHtml((p.options||[]).join('\n'))}</textarea>
+      </div>
+      <div class="q-form-row">
+        <div class="q-form-section">
+          <div class="q-form-label"><span class="q-form-label-text">Answer</span></div>
+          <textarea data-pidx="${idx}" data-field="answer" oninput="markDirty()">${escapeHtml(p.answer||'')}</textarea>
+        </div>
+        <div class="q-form-section">
+          <div class="q-form-label"><span class="q-form-label-text">Explanation</span></div>
+          <textarea data-pidx="${idx}" data-field="explanation" oninput="markDirty()">${escapeHtml(p.explanation||'')}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  form.innerHTML = `
+    <div class="q-form-section">
+      <div class="q-form-label"><span class="q-form-label-text">Main Question <span class="q-form-label-tip">— intro / instruction / standalone question</span></span></div>
+      <textarea data-field="mainText" rows="3" oninput="markDirty()">${escapeHtml(q.mainText||'')}</textarea>
+    </div>
+
+    <div class="q-form-row">
+      <div class="q-form-section">
+        <div class="q-form-label"><span class="q-form-label-text">Type</span></div>
+        <select data-field="type" oninput="markDirty()">
+          <option ${q.type==='MCQ'?'selected':''}>MCQ</option>
+          <option ${q.type==='Short Answer'?'selected':''}>Short Answer</option>
+          <option ${q.type==='Essay'?'selected':''}>Essay</option>
+          <option ${q.type==='Fill in the Blank'?'selected':''}>Fill in the Blank</option>
+        </select>
+      </div>
+      <div class="q-form-section">
+        <div class="q-form-label"><span class="q-form-label-text">Difficulty</span></div>
+        <select data-field="difficulty" oninput="markDirty()">
+          <option value="">— None —</option>
+          <option value="Easy" ${q.difficulty==='Easy'?'selected':''}>🟢 Easy</option>
+          <option value="Medium" ${q.difficulty==='Medium'?'selected':''}>🟡 Medium</option>
+          <option value="Hard" ${q.difficulty==='Hard'?'selected':''}>🔴 Hard</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="q-form-section">
+      <div class="q-form-label">
+        <span class="q-form-label-text">Question Parts <span class="q-form-label-tip">— sub-questions a/b/c</span></span>
+      </div>
+      ${partsHtml}
+      <button class="part-add-btn" onclick="addPart()">+ Add another part</button>
+    </div>
+  `;
+}
+
+let dirtyTimer;
+function markDirty(){
+  clearTimeout(dirtyTimer);
+  dirtyTimer = setTimeout(saveEditorForm, 300);
+}
+
+function saveEditorForm() {
+  const q = parsedQuestions[activeEditorIdx];
+  if (!q) return;
+  const form = document.getElementById('qForm');
+
+  // Top-level fields
+  form.querySelectorAll('[data-field]:not([data-pidx])').forEach(el => {
+    q[el.dataset.field] = el.value;
+  });
+
+  // Parts
+  const partInputs = form.querySelectorAll('[data-pidx]');
+  partInputs.forEach(el => {
+    const idx = parseInt(el.dataset.pidx);
+    const field = el.dataset.field;
+    if (!q.parts[idx]) return;
+    if (field === 'options') {
+      q.parts[idx].options = el.value.split('\n').map(o=>o.trim()).filter(Boolean);
+    } else {
+      q.parts[idx][field] = el.value;
+    }
+  });
+}
+
+function addPart() {
+  saveEditorForm();
+  const q = parsedQuestions[activeEditorIdx];
+  const nextLetter = String.fromCharCode(97 + q.parts.length);
+  q.parts.push({label:nextLetter+')',prompt:'',options:[],answer:'',explanation:''});
+  renderEditorForm();
+}
+
+function removePart(idx) {
+  saveEditorForm();
+  const q = parsedQuestions[activeEditorIdx];
+  if (q.parts.length <= 1) {
+    showToast('Each question needs at least one part.', 'info');
+    return;
+  }
+  q.parts.splice(idx,1);
+  renderEditorForm();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IMPORT
+// ═══════════════════════════════════════════════════════════════════════════
+function importQuestions(){
+  saveEditorForm();
+  const grade=document.getElementById('metaGrade').value;
+  const subject=document.getElementById('metaSubject').value;
+  const tutor=document.getElementById('metaTutor').value.trim();
+  const defType=document.getElementById('metaType').value;
+  const today=new Date();
+  const dateStr=today.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const year=String(today.getFullYear());
+
+  const added = parsedQuestions.map(q => ({
+    id: nextId++,
+    mainText: q.mainText || '',
+    parts: q.parts || [],
+    subject: subject||'General',
+    grade: grade||'',
+    tutor: tutor||'Unassigned',
+    type: q.type||defType,
+    difficulty: q.difficulty||null,
+    date: year,
+    uploadDate: dateStr,
+    imported: true
+  }));
+
+  ALL_QUESTIONS = [...ALL_QUESTIONS, ...added];
+  document.getElementById('statTotal').textContent = ALL_QUESTIONS.length;
+  applyFilters();
+  closeUploadModal();
+  showToast(`✓ ${added.length} question${added.length!==1?'s':''} imported!`, 'success');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type+' show';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+document.getElementById('uploadModal').addEventListener('click',function(e){if(e.target===this)closeUploadModal();});
+</script>
+</body>
+</html>
