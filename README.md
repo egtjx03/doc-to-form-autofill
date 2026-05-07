@@ -17,7 +17,7 @@ This is a **demo build** — no backend, no database, no login system. Everythin
 
 ## Running it
 
-Just open `tuition_portal.html` in a browser. That's it. No server, no install, no build step.
+Just open `tuition_portal.html` in a browser. No server, no install, no build step.
 
 Tested on Chrome, Safari, and Firefox.
 
