@@ -11,7 +11,7 @@ This is a **demo build** — no backend, no database, no login system. Everythin
 | File | Purpose |
 |------|---------|
 | `tuition_portal.html` | The entire app — open in any modern browser |
-| `StarLearners_Sec1_LinearEq.docx` | Sample worksheet showing the expected document format |
+| `Sec1_LinearEq.docx` | Sample worksheet showing the expected document format |
 
 ---
 
@@ -47,7 +47,7 @@ Switch between the two from the landing page or via "Switch Role" in the header.
 
 ## Document format
 
-The parser recognises the format used by the sample doc (`StarLearners_Sec1_LinearEq.docx`). The structure matters more than exact wording — here's what it expects:
+The parser recognises the format used by the sample doc (`Sec1_LinearEq.docx`). The structure matters more than exact wording — here's what it expects:
 
 ### Cover page (auto-skipped)
 Everything before the first `Question 1` (or `Q1` / `1.` / `1)`) is treated as the cover page. The parser extracts:
@@ -189,7 +189,7 @@ No build step, no package.json, no dependencies to install.
 
 ## Notes on the sample doc
 
-`StarLearners_Sec1_LinearEq.docx` is a fictional Secondary 1 maths worksheet on Linear Equations in One Variable. It contains:
+`Sec1_LinearEq.docx` is a fictional Secondary 1 maths worksheet on Linear Equations in One Variable. It contains:
 
 - Cover page with title, level, topic, difficulty count table, student info fields, tutor sign-off
 - Instructions section
