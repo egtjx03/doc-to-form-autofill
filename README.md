@@ -1,4 +1,4 @@
-# EduVault — Tuition Centre Question Portal (Demo)
+# EduVault - Auto Upload Questions Demo (Demo)
 
 A standalone, single-file demo of a question bank + form-fill portal for tuition centres. Built to replicate (and improve on) the manual data-entry workflow of uploading questions from Word documents into an online platform.
 
